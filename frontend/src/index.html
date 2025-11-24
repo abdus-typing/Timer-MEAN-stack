@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" href="https://imgs.search.brave.com/9YFsk7sOLxLOqIP4gE2IeMFMuKPX_-iOSXwoz1-BKsg/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMDlhZTVkMGU0/ZjBiOTM4NWYxYTZj/NjVkM2Y3MjgyYTBl/ODNjY2QxYWFiN2Vm/NmMyYjI4MDIzZGI4/MzU0ODczZC93d3cu/YW55LmRvLw" type="image/png">
+  <title>A To-Do List</title>
+  <link rel="stylesheet" href="styles.css">
+    
+</head>
+<body>
+
+  <div class="container">
+    <h1>Simple To-Do List</h1>
+    <div class="todo-inputs">
+      <input type="text" id="new-task" placeholder="Task description...">
+      <input type="date" id="due-date">
+      <select id="category">
+        <option value="General">General</option>
+        <option value="Work">Work</option>
+        <option value="Study">Study</option>
+        <option value="Personal">Personal</option>
+      </select>
+      <button onclick="addTask()">Add</button>
+    </div>
+    <ul class="todo-list" id="task-list"></ul>
+  </div>
+
+  <script>
+    console.log("Script loaded");
+
+async function renderTasks() {
+  const res = await fetch('http://localhost:3000/api/tasks');
+  const tasks = await res.json();
+
+  const list = document.getElementById("task-list");
+  list.innerHTML = "";
+  tasks.forEach((task, index) => {
+    const li = document.createElement("li");
+    li.classList.toggle("done", task.done);
+    li.innerHTML = `
+      <span class="details">
+        <strong>${task.text}</strong><br>
+        <span class="meta">📅 ${task.due || "No due date"} |  ${task.category}</span>
+      </span>
+      <div class="todo-actions">
+        <button onclick="toggleDone('${task._id}', ${!task.done})">✔️</button>
+        <button onclick="deleteTask('${task._id}')">🗑️</button>
+      </div>  `;
+    list.appendChild(li);
+  });
+}
+
+async function addTask() {
+  const text = document.getElementById("new-task").value.trim();
+  const due = document.getElementById("due-date").value;
+  const category = document.getElementById("category").value;
+
+  if (!text) return alert("Enter a task.");
+
+  await fetch('http://localhost:3000/api/tasks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, due, category, done: false })
+  });
+
+  renderTasks();
+  document.getElementById("new-task").value = "";
+  document.getElementById("due-date").value = "";
+}
+
+async function toggleDone(id, done) {
+  await fetch(`http://localhost:3000/api/tasks/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ done })
+  });
+  renderTasks();
+}
+
+async function deleteTask(id) {
+  if (!confirm("Are you sure?")) return;
+  await fetch(`http://localhost:3000/api/tasks/${id}`, {
+    method: 'DELETE'
+  });
+  renderTasks();
+}
+
+// Initial load
+renderTasks();
+  </script>
+
+</body>
+</html>
